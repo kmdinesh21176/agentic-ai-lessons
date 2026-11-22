@@ -21,6 +21,8 @@ def list_practiced_lessons() -> list[str]:
         if not any(part in SKIP_DIRS or part.startswith("workspace") for part in p.parts)
     )
 
+import base64  # Encodes GitHub PAT safely into HTTP Basic Authorization header
+
 @tool
 def push_lessons_to_github(repo_name: str, username: str, token: str) -> str:
     """Configure .gitignore and push all practiced lessons in C:\\Dinesh\\langchain-learning to GitHub via git."""
@@ -28,23 +30,26 @@ def push_lessons_to_github(repo_name: str, username: str, token: str) -> str:
         return "AUTH_REJECTED: Missing GitHub username or Personal Access Token."
 
     (PROJECT_ROOT / ".gitignore").write_text("venv/\n.venv/\n__pycache__/\n*.pyc\n.env\nworkspace*/\n", encoding="utf-8")
-    remote_url = f"https://{username}:{token}@://github.com{username}/{repo_name}.git"
+    clean_url = f"https://github.com{username}/{repo_name}.git"  # Standard HTTPS Git URL (no embedded token)
+    b64_auth = base64.b64encode(f"{username}:{token}".encode("utf-8")).decode("ascii")  # Safe HTTP Basic header
+
     cmds = [
         ["git", "init", "-b", "main"],
         ["git", "config", "user.name", username],
-        ["git", "config", "user.email", f"{username}@://github.com"],
+        ["git", "config", "user.email", f"{username}@users.noreply.github.com"],
         ["git", "add", "."],
         ["git", "commit", "-m", "Backup practiced Agentic AI lessons"],
         ["git", "remote", "remove", "origin"],
-        ["git", "remote", "add", "origin", remote_url],
-        ["git", "push", "-u", "origin", "main", "--force"],
+        ["git", "remote", "add", "origin", clean_url],
+        ["git", "-c", f"http.https://github.com.extraheader=AUTHORIZATION: basic {b64_auth}", "push", "-u", "origin", "main", "--force"],
     ]
     for cmd in cmds:
         proc = subprocess.run(cmd, cwd=str(PROJECT_ROOT), capture_output=True, text=True)
         if proc.returncode != 0 and cmd[1] not in ("commit", "remote"):
-            safe_err = proc.stderr.replace(token, "***").strip()[:300]
+            safe_err = proc.stderr.replace(token, "***").replace(b64_auth, "***").strip()[:300]
             return f"GIT_ERROR ({' '.join(cmd[:2])}): {safe_err}"
-    return f"BACKUP_SUCCESS: Pushed practiced lessons to https://github.com/{username}/{repo_name}"
+    return f"BACKUP_SUCCESS: Pushed practiced lessons to https://github.com{username}/{repo_name}"
+
 
 
 import uuid  # Generates unique thread_id per execution
