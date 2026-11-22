@@ -41,10 +41,11 @@ def push_lessons_to_github(repo_name: str, username: str, token: str) -> str:
     ]
     for cmd in cmds:
         proc = subprocess.run(cmd, cwd=str(PROJECT_ROOT), capture_output=True, text=True)
-        if proc.returncode != 0 and cmd not in ("commit", "remote"):
+        if proc.returncode != 0 and cmd[1] not in ("commit", "remote"):
             safe_err = proc.stderr.replace(token, "***").strip()[:300]
             return f"GIT_ERROR ({' '.join(cmd[:2])}): {safe_err}"
-    return f"BACKUP_SUCCESS: Pushed practiced lessons to https://://github.com{username}/{repo_name}"
+    return f"BACKUP_SUCCESS: Pushed practiced lessons to https://github.com/{username}/{repo_name}"
+
 
 import uuid  # Generates unique thread_id per execution
 from deepagents import create_deep_agent  # DeepAgents orchestrator builder
