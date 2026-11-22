@@ -30,7 +30,7 @@ def push_lessons_to_github(repo_name: str, username: str, token: str) -> str:
         return "AUTH_REJECTED: Missing GitHub username or Personal Access Token."
 
     (PROJECT_ROOT / ".gitignore").write_text("venv/\n.venv/\n__pycache__/\n*.pyc\n.env\nworkspace*/\n", encoding="utf-8")
-    clean_url = f"https://github.com{username}/{repo_name}.git"  # Standard HTTPS Git URL (no embedded token)
+    clean_url = "https://github.com" + username + "/" + repo_name + ".git"  # Standard HTTPS Git URL (no embedded token)
     b64_auth = base64.b64encode(f"{username}:{token}".encode("utf-8")).decode("ascii")  # Safe HTTP Basic header
 
     cmds = [
